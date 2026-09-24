@@ -22,7 +22,7 @@ spark = (
     .master("local[*]")
     .config(
         "spark.jars.packages",
-        "org.apache.spark:spark-sql-kafka-0-10_2.13:4.2.0"
+        "org.apache.spark:spark-sql-kafka-0-10_2.13:4.1.1"
     )
     .getOrCreate()
 )
