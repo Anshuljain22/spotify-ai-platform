@@ -1,4 +1,6 @@
+
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from src.agent_tools import (
     query_listening_summary,
     query_recent_listening,
@@ -16,7 +18,20 @@ app = FastAPI(
     title="Spotify Intelligence API",
     version="1.0.0",
 )
-
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+@app.get("/analytics/patterns")
+def analytics_patterns():
+    from src.agent_tools import query_listening_patterns
+    return query_listening_patterns()
 
 @app.get("/")
 def root():
@@ -70,6 +85,11 @@ def currently_playing():
 def artist_analytics(artist_name: str):
     return query_artist_analytics(artist_name)
 
+@app.get("/analytics/activity")
+def analytics_activity():
+    from src.agent_tools import query_listening_activity
+    return query_listening_activity()
+
 
 @app.get("/analytics/track/{track_name}")
 def track_analytics(track_name: str):
@@ -90,9 +110,85 @@ def run_agent(question: str):
     messages = result.get("messages", [])
 
     if not messages:
-        return {"answer": "No response generated."}
+        return {
+            "question": question,
+            "answer": "No response generated.",
+            "insights": [],
+            "metrics": [],
+        }
+
+    content = messages[-1].content
+
+    if isinstance(content, list):
+        parts = []
+
+        for item in content:
+            if isinstance(item, dict):
+                text = item.get("text")
+                if text:
+                    parts.append(text)
+            elif isinstance(item, str):
+                parts.append(item)
+
+        content = "\n".join(parts)
+
+    insights = []
+    metrics = []
+
+    question_lower = question.lower()
+
+    try:
+        if "top artist" in question_lower:
+            concentration = query_artist_concentration()
+
+            top_artist = concentration["top_artist"]
+            top_artist_events = concentration["top_artist_associations"]
+            top_artist_share = concentration["top_artist_association_share_pct"]
+            total_events = concentration["total_artist_associations"]
+
+            insights = [
+                {
+                    "title": "Top artist",
+                    "description": (
+                        f"{top_artist} has the highest number of "
+                        f"captured artist-event associations."
+                    ),
+                },
+                {
+                    "title": "Listening share",
+                    "description": (
+                        f"{top_artist} represents "
+                        f"{top_artist_share:.2f}% of your captured "
+                        f"artist associations."
+                    ),
+                },
+            ]
+
+            metrics = [
+                {
+                    "label": "Top artist",
+                    "value": top_artist,
+                },
+                {
+                    "label": "Artist associations",
+                    "value": str(top_artist_events),
+                },
+                {
+                    "label": "Association share",
+                    "value": f"{top_artist_share:.2f}%",
+                },
+                {
+                    "label": "Total associations",
+                    "value": str(total_events),
+                },
+            ]
+
+    except Exception as e:
+        print(f"Structured analytics error: {e}")
 
     return {
         "question": question,
-        "answer": messages[-1].content,
+        "answer": content,
+        "insights": insights,
+        "metrics": metrics,
     }

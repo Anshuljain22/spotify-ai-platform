@@ -6,6 +6,23 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain.agents import create_agent
 from langgraph.checkpoint.memory import InMemorySaver
 load_dotenv()
+from pydantic import BaseModel, Field
+
+
+class AnalystInsight(BaseModel):
+    title: str
+    description: str
+
+
+class AnalystMetric(BaseModel):
+    label: str
+    value: str
+
+
+class AnalystResponse(BaseModel):
+    answer: str
+    insights: list[AnalystInsight] = Field(default_factory=list)
+    metrics: list[AnalystMetric] = Field(default_factory=list)
 
 from src.agent_tools import (
     query_track_analytics,
@@ -158,6 +175,7 @@ Keep answers concise, natural, and useful.
 llm = ChatGoogleGenerativeAI(
     model="gemini-3.5-flash-lite",
 )
+structured_llm = llm.with_structured_output(AnalystResponse)
 
 
 tools = [

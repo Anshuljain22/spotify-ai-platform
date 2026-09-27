@@ -1,3 +1,6 @@
+from src.spark_config import configure_spark_environment
+
+configure_spark_environment()
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import (
     avg,

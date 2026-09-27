@@ -1,6 +1,10 @@
 import json
 from pathlib import Path
 
+from src.spark_config import configure_spark_environment
+
+configure_spark_environment()
+
 import psycopg2
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
@@ -604,3 +608,28 @@ if __name__ == "__main__":
             default=str,
         )
     )
+def query_listening_activity():
+    """Return captured listening events grouped by calendar day."""
+    spark = get_spark()
+
+    df = spark.table("local.spotify.listening_events")
+
+    activity = (
+        df.filter(F.col("is_playing") == True)
+        .withColumn("date", F.to_date("collected_at_ts"))
+        .groupBy("date")
+        .agg(
+            F.count("*").alias("play_events"),
+            F.countDistinct("track_id").alias("unique_tracks"),
+        )
+        .orderBy("date")
+    )
+
+    return [
+        {
+            "date": str(row["date"]),
+            "play_events": row["play_events"],
+            "unique_tracks": row["unique_tracks"],
+        }
+        for row in activity.collect()
+    ]
