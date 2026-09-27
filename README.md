@@ -1,4 +1,4 @@
-````markdown
+
 # Spotify AI Platform
 
 An end-to-end Spotify data engineering and AI analytics platform that combines batch data pipelines, real-time streaming, analytics, and a LangGraph-powered AI Analyst into a single dashboard.
@@ -56,9 +56,9 @@ The goal is to provide both structured listening analytics and natural-language 
                            │
                            ▼
                      MusicBrainz
-````
+```
 
----
+
 
 ## Key Features
 
